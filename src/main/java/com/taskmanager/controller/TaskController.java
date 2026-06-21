@@ -4,6 +4,8 @@ package com.taskmanager.controller;
 import com.taskmanager.model.Task;
 import com.taskmanager.model.TaskStatus;
 import com.taskmanager.service.TaskService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -14,12 +16,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/tasks")
 @RequiredArgsConstructor
+@Tag(name = "Tasks", description = "Gestion des tâches")
 public class TaskController {
 
     private final TaskService taskService;
 
-    // POST /api/tasks?projectId=1&assigneeId=2
     @PostMapping
+    @Operation(summary = "Créer une tâche")
     public ResponseEntity<Task> create(
             @Valid @RequestBody Task task,
             @RequestParam Long projectId,
@@ -28,28 +31,28 @@ public class TaskController {
                 .body(taskService.create(task, projectId, assigneeId));
     }
 
-    // GET /api/tasks/project/1
     @GetMapping("/project/{projectId}")
+    @Operation(summary = "Lister les tâches d'un projet")
     public ResponseEntity<List<Task>> getByProject(@PathVariable Long projectId) {
         return ResponseEntity.ok(taskService.findByProject(projectId));
     }
 
-    // GET /api/tasks/1
     @GetMapping("/{id}")
+    @Operation(summary = "Trouver une tâche par ID")
     public ResponseEntity<Task> getById(@PathVariable Long id) {
         return ResponseEntity.ok(taskService.findById(id));
     }
 
-    // PATCH /api/tasks/1/status?status=DONE
     @PatchMapping("/{id}/status")
+    @Operation(summary = "Changer le statut d'une tâche")
     public ResponseEntity<Task> updateStatus(
             @PathVariable Long id,
             @RequestParam TaskStatus status) {
         return ResponseEntity.ok(taskService.updateStatus(id, status));
     }
 
-    // DELETE /api/tasks/1
     @DeleteMapping("/{id}")
+    @Operation(summary = "Supprimer une tâche")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         taskService.delete(id);
         return ResponseEntity.noContent().build();
