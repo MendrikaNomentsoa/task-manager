@@ -25,6 +25,9 @@ public class User {
     @Column(unique = true)
     private String email;
 
+    @Column(nullable = false)
+    private String password;
+
     // Un user peut avoir plusieurs tâches assignées
     @OneToMany(mappedBy = "assignee")
     private List<Task> tasks;
