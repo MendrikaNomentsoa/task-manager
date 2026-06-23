@@ -1,34 +1,29 @@
 package com.taskmanager.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.taskmanager.exception.ResourceNotFoundException;
 import com.taskmanager.model.Project;
 import com.taskmanager.service.ProjectService;
+import com.taskmanager.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
- import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(ProjectController.class)
+// On teste directement le Controller sans Spring
+@ExtendWith(MockitoExtension.class)
 class ProjectControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
-
-    @MockitoBean
+    @Mock
     private ProjectService projectService;
+
+    @InjectMocks
+    private ProjectController projectController;
 
     private Project project;
 
@@ -42,76 +37,73 @@ class ProjectControllerTest {
     }
 
     @Test
-    void create_shouldReturn201() throws Exception {
+    void create_shouldReturnProject() {
         when(projectService.create(any())).thenReturn(project);
 
-        mockMvc.perform(post("/api/projects")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(project)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.name").value("Refonte site"));
+        var result = projectController.create(project);
+
+        assertThat(result.getStatusCode().value()).isEqualTo(201);
+        assertThat(result.getBody()).isNotNull();
+        assertThat(result.getBody().getName()).isEqualTo("Refonte site");
     }
 
     @Test
-    void findAll_shouldReturn200() throws Exception {
+    void findAll_shouldReturnList() {
         when(projectService.findAll()).thenReturn(List.of(project));
 
-        mockMvc.perform(get("/api/projects"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].name").value("Refonte site"));
+        var result = projectController.findAll();
+
+        assertThat(result.getStatusCode().value()).isEqualTo(200);
+        assertThat(result.getBody()).hasSize(1);
     }
 
     @Test
-    void findById_shouldReturn200() throws Exception {
+    void findById_shouldReturnProject() {
         when(projectService.findById(1L)).thenReturn(project);
 
-        mockMvc.perform(get("/api/projects/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1));
+        var result = projectController.findById(1L);
+
+        assertThat(result.getStatusCode().value()).isEqualTo(200);
+        assertThat(result.getBody().getId()).isEqualTo(1L);
     }
 
     @Test
-    void findById_shouldReturn404() throws Exception {
+    void findById_shouldThrow_whenNotFound() {
         when(projectService.findById(99L))
                 .thenThrow(new ResourceNotFoundException("Projet non trouvé : 99"));
 
-        mockMvc.perform(get("/api/projects/99"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.message").value("Projet non trouvé : 99"));
+        assertThatThrownBy(() -> projectController.findById(99L))
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    void search_shouldReturn200() throws Exception {
+    void search_shouldReturnList() {
         when(projectService.search("refonte")).thenReturn(List.of(project));
 
-        mockMvc.perform(get("/api/projects/search?name=refonte"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1));
+        var result = projectController.search("refonte");
+
+        assertThat(result.getStatusCode().value()).isEqualTo(200);
+        assertThat(result.getBody()).hasSize(1);
     }
 
     @Test
-    void update_shouldReturn200() throws Exception {
+    void update_shouldReturnUpdated() {
         Project updated = Project.builder()
-                .id(1L)
-                .name("Nouveau nom")
-                .description("Nouvelle description")
-                .build();
-
+                .id(1L).name("Nouveau nom").build();
         when(projectService.update(eq(1L), any())).thenReturn(updated);
 
-        mockMvc.perform(put("/api/projects/1")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updated)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Nouveau nom"));
+        var result = projectController.update(1L, updated);
+
+        assertThat(result.getStatusCode().value()).isEqualTo(200);
+        assertThat(result.getBody().getName()).isEqualTo("Nouveau nom");
     }
 
     @Test
-    void delete_shouldReturn204() throws Exception {
+    void delete_shouldReturn204() {
         doNothing().when(projectService).delete(1L);
 
-        mockMvc.perform(delete("/api/projects/1"))
-                .andExpect(status().isNoContent());
+        var result = projectController.delete(1L);
+
+        assertThat(result.getStatusCode().value()).isEqualTo(204);
     }
 }

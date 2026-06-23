@@ -21,8 +21,10 @@ class TaskServiceTest {
 
     @Mock
     private TaskRepository taskRepository;
+
     @Mock
     private ProjectRepository projectRepository;
+
     @Mock
     private UserRepository userRepository;
 

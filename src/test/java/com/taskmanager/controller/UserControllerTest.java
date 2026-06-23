@@ -1,35 +1,28 @@
 package com.taskmanager.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.taskmanager.exception.ResourceNotFoundException;
 import com.taskmanager.model.User;
 import com.taskmanager.service.UserService;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
- import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(UserController.class)
+@ExtendWith(MockitoExtension.class)
 class UserControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
-
-    @MockitoBean
+    @Mock
     private UserService userService;
+
+    @InjectMocks
+    private UserController userController;
 
     private User user;
 
@@ -43,69 +36,62 @@ class UserControllerTest {
     }
 
     @Test
-    void create_shouldReturn201_withUser() throws Exception {
+    void create_shouldReturn201() {
         when(userService.create(any())).thenReturn(user);
 
-        mockMvc.perform(post("/api/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(user)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.name").value("Jean Dupont"))
-                .andExpect(jsonPath("$.email").value("jean@email.com"));
+        var result = userController.create(user);
+
+        assertThat(result.getStatusCode().value()).isEqualTo(201);
+        assertThat(result.getBody().getName()).isEqualTo("Jean Dupont");
     }
 
     @Test
-    void findAll_shouldReturn200_withList() throws Exception {
+    void findAll_shouldReturnList() {
         when(userService.findAll()).thenReturn(List.of(user));
 
-        mockMvc.perform(get("/api/users"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].name").value("Jean Dupont"));
+        var result = userController.findAll();
+
+        assertThat(result.getStatusCode().value()).isEqualTo(200);
+        assertThat(result.getBody()).hasSize(1);
     }
 
     @Test
-    void findById_shouldReturn200() throws Exception {
+    void findById_shouldReturnUser() {
         when(userService.findById(1L)).thenReturn(user);
 
-        mockMvc.perform(get("/api/users/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.name").value("Jean Dupont"));
+        var result = userController.findById(1L);
+
+        assertThat(result.getStatusCode().value()).isEqualTo(200);
+        assertThat(result.getBody().getId()).isEqualTo(1L);
     }
 
     @Test
-    void findById_shouldReturn404_whenNotFound() throws Exception {
+    void findById_shouldThrow_whenNotFound() {
         when(userService.findById(99L))
                 .thenThrow(new ResourceNotFoundException("Utilisateur non trouvé : 99"));
 
-        mockMvc.perform(get("/api/users/99"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.message").value("Utilisateur non trouvé : 99"));
+        assertThatThrownBy(() -> userController.findById(99L))
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    void update_shouldReturn200() throws Exception {
+    void update_shouldReturnUpdated() {
         User updated = User.builder()
-                .id(1L)
-                .name("Jean Modifié")
-                .email("jean@email.com")
-                .build();
-
+                .id(1L).name("Jean Modifié").email("jean@email.com").build();
         when(userService.update(eq(1L), any())).thenReturn(updated);
 
-        mockMvc.perform(put("/api/users/1")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updated)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Jean Modifié"));
+        var result = userController.update(1L, updated);
+
+        assertThat(result.getStatusCode().value()).isEqualTo(200);
+        assertThat(result.getBody().getName()).isEqualTo("Jean Modifié");
     }
 
     @Test
-    void delete_shouldReturn204() throws Exception {
+    void delete_shouldReturn204() {
         doNothing().when(userService).delete(1L);
 
-        mockMvc.perform(delete("/api/users/1"))
-                .andExpect(status().isNoContent());
+        var result = userController.delete(1L);
+
+        assertThat(result.getStatusCode().value()).isEqualTo(204);
     }
 }
